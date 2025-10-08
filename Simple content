@@ -1,0 +1,4 @@
+Type: Content-Based Filtering
+Mechanism: It builds a profile of the user based on the features (content) of the items they have interacted with and suggests new items that have similar features.
+Pros: Works well for new users with a few ratings, does not need data from other users.
+Cons: Limited to suggesting items similar to what the user already likes (less serendipity); requires detailed feature data for every item.
