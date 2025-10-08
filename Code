@@ -1,0 +1,85 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def simple_content_based_recommender():
+    """
+    A simple content-based recommender system for movies.
+
+    It uses:
+    1. TF-IDF (Term Frequency-Inverse Document Frequency) to vectorize movie genres.
+    2. Cosine Similarity to measure the similarity between movies.
+    3. Recommends movies similar to the ones a user has liked.
+    """
+
+    # 1. DATA SETUP: Movies and their features (genres)
+    movies_data = {
+        "title": ["Movie A", "Movie B", "Movie C", "Movie D", "Movie E", "Movie F", "Movie G"],
+        "genres": ["Action Sci-Fi Adventure", "Comedy Romance", "Sci-Fi Thriller Drama", 
+                   "Action Thriller Adventure", "Comedy Drama", "Sci-Fi Action", "Romance Drama"]
+    }
+    df = pd.DataFrame(movies_data)
+    
+    # The user's past preferences
+    user_liked_movies = ["Movie A", "Movie B"]
+    
+    print("--- 🎬 Content-Based Movie Recommender ---")
+    print(f"\nUser's Liked Movies: {user_liked_movies}")
+    print("-" * 35)
+
+    # 2. FEATURE EXTRACTION: Convert genre strings into numerical vectors using TF-IDF
+    # TF-IDF weights genres based on how unique they are across all movies.
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(df['genres'])
+
+    # 3. SIMILARITY CALCULATION: Compute the Cosine Similarity Matrix
+    # This matrix shows the similarity score between every pair of movies.
+    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+    # Convert movie titles to a Series for easy index lookup
+    indices = pd.Series(df.index, index=df['title']).drop_duplicates()
+
+    # 4. RECOMMENDATION GENERATION
+    recommendations = {}
+
+    for liked_movie in user_liked_movies:
+        if liked_movie in indices:
+            # Get the index of the liked movie
+            idx = indices[liked_movie]
+            
+            # Get the pairwise similarity scores for all movies with that liked movie
+            sim_scores = list(enumerate(cosine_sim[idx]))
+            
+            # Sort the movies based on the similarity score (descending)
+            sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+            
+            # Get the scores of the 5 most similar movies (excluding the movie itself)
+            # Starting from index 1 to skip the 100% match with itself
+            sim_scores = sim_scores[1:6] 
+            
+            # Get the movie indices and titles
+            movie_indices = [i[0] for i in sim_scores]
+            similar_titles = df['title'].iloc[movie_indices].tolist()
+            
+            # Aggregate the scores for similar movies, storing the highest score
+            for i, score in sim_scores:
+                title = df['title'].iloc[i]
+                
+                # Exclude movies the user has already liked
+                if title not in user_liked_movies:
+                    # Keep the highest similarity score if a movie is suggested by multiple liked movies
+                    recommendations[title] = max(recommendations.get(title, 0), score)
+
+    # Sort final recommendations by score
+    final_recommendations = sorted(recommendations.items(), key=lambda item: item[1], reverse=True)
+    
+    # 5. DISPLAY RESULTS
+    print("\nTop Recommendations:")
+    if final_recommendations:
+        for i, (title, score) in enumerate(final_recommendations):
+            print(f"{i+1}. {title} (Similarity: {score:.4f})")
+    else:
+        print("No new recommendations found.")
+
+# Execute the recommender
+simple_content_based_recommender()
